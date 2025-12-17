@@ -1,0 +1,73 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform action'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+jobs:
+  terraform:
+    name: Terraform ${{ github.event.inputs.action || 'apply' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+      
+      - name: Setup Make
+        run: |
+          # Make is already available on ubuntu-latest
+          make --version
+      
+      - name: Create .env from secrets
+        run: |
+          cat > .env << EOF
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          EOF
+      
+      - name: Terraform Plan
+        if: github.event_name == 'push' || github.event.inputs.action == 'plan'
+        run: make plan
+      
+      - name: Terraform Apply
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: make deploy-ci
+      
+      - name: Terraform Destroy
+        if: github.event.inputs.action == 'destroy'
+        run: make destroy
+      
+      - name: Output API Gateway URL
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: |
+          cd terraform
+          terraform output api_gateway_url
+
