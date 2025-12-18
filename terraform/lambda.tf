@@ -48,7 +48,7 @@ resource "aws_lambda_function" "search_api" {
 
   environment {
     variables = {
-      DB_HOST     = aws_db_instance.main.address
+      DB_HOST     = aws_db_instance.main.address  # Direct RDS connection (not proxy)
       DB_PORT     = tostring(aws_db_instance.main.port)
       DB_NAME     = aws_db_instance.main.db_name
       DB_USER     = aws_db_instance.main.username

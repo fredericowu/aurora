@@ -49,6 +49,11 @@ jobs:
       
       - name: Setup environment from Terraform outputs
         run: make setup-env
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       
       - name: Run ingestion script
         run: make ingest
