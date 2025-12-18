@@ -66,6 +66,10 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
   tags = {
     Name = "aurora-api-gateway-logs"
   }
+
+  lifecycle {
+    ignore_changes = [name]
+  }
 }
 
 # Lambda Permission for API Gateway

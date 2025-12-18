@@ -1,10 +1,15 @@
-# DB Subnet Group
+# DB Subnet Group - using Lambda VPC's private subnets
+# Using a new name to avoid conflict with existing subnet group in different VPC
 resource "aws_db_subnet_group" "main" {
-  name       = "aurora-db-subnet-group"
+  name       = "aurora-db-subnet-group-v2"
   subnet_ids = aws_subnet.private[*].id
 
   tags = {
     Name = "aurora-db-subnet-group"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -12,7 +17,7 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "main" {
   identifier             = "aurora-postgres"
   engine                 = "postgres"
-  engine_version         = "15.4"
+  # engine_version will use default (latest stable)
   instance_class         = var.db_instance_class
   allocated_storage     = 20
   storage_type           = "gp3"
@@ -35,4 +40,3 @@ resource "aws_db_instance" "main" {
 
 # Database initialization script (stored as local file, executed via ingestion script)
 # The schema will be created by the ingestion script on first run
-

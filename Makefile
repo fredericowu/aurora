@@ -1,19 +1,45 @@
-.PHONY: help deploy destroy plan init-terraform setup-env ingest test clean
+.PHONY: help deploy destroy plan init-terraform setup-env ingest test clean venv setup-python
 
 # Default target
 help:
 	@echo "Aurora Search Engine - Makefile"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make init-terraform  - Initialize Terraform"
+	@echo "  make venv           - Create Python virtual environment"
+	@echo "  make setup-python   - Install Python dependencies"
+	@echo "  make build-lambda   - Build Lambda deployment package (x86_64)"
+	@echo "  make init-terraform - Initialize Terraform"
 	@echo "  make plan           - Plan Terraform changes"
-	@echo "  make deploy         - Deploy infrastructure"
+	@echo "  make deploy         - Build Lambda and deploy infrastructure"
 	@echo "  make destroy        - Destroy infrastructure"
 	@echo "  make setup-env      - Populate .env from Terraform outputs"
 	@echo "  make ingest         - Run message ingestion"
 	@echo "  make test           - Run performance tests"
+	@echo "  make test-lambda    - Test Lambda function via API Gateway"
 	@echo "  make clean          - Clean temporary files"
 	@echo ""
+
+# Python virtual environment
+VENV := .venv
+PYTHON := $(VENV)/bin/python
+PIP := $(VENV)/bin/pip
+
+# Create virtual environment
+venv:
+	@if [ ! -d "$(VENV)" ]; then \
+		echo "Creating Python virtual environment..."; \
+		python3 -m venv $(VENV); \
+		echo "✓ Virtual environment created"; \
+	else \
+		echo "✓ Virtual environment already exists"; \
+	fi
+
+# Setup Python dependencies
+setup-python: venv
+	@echo "Installing Python dependencies..."
+	@$(PIP) install --upgrade pip
+	@$(PIP) install -r scripts/requirements.txt
+	@echo "✓ Python dependencies installed"
 
 # Load environment variables from .env file (if it exists)
 -include .env
@@ -39,8 +65,52 @@ check-env:
 	fi
 	@echo "✓ Environment variables validated"
 
+# Create S3 bucket for Terraform state (if it doesn't exist)
+create-terraform-backend: check-env
+	@echo "Creating Terraform backend resources..."
+	@AWS_REGION=$${AWS_REGION:-us-east-1}; \
+	BUCKET_NAME="aurora-terraform-state-$${AWS_REGION}"; \
+	TABLE_NAME="aurora-terraform-locks"; \
+	echo "Checking S3 bucket: $$BUCKET_NAME"; \
+	if ! aws s3 ls "s3://$$BUCKET_NAME" 2>/dev/null >/dev/null 2>&1; then \
+		echo "Creating S3 bucket: $$BUCKET_NAME"; \
+		aws s3 mb "s3://$$BUCKET_NAME" --region $$AWS_REGION || true; \
+		aws s3api put-bucket-versioning \
+			--bucket $$BUCKET_NAME \
+			--versioning-configuration Status=Enabled 2>/dev/null || true; \
+		aws s3api put-bucket-encryption \
+			--bucket $$BUCKET_NAME \
+			--server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}' 2>/dev/null || true; \
+		echo "✓ S3 bucket created"; \
+	else \
+		echo "✓ S3 bucket already exists"; \
+	fi; \
+	echo "Checking DynamoDB table: $$TABLE_NAME"; \
+	if ! aws dynamodb describe-table --table-name $$TABLE_NAME --region $$AWS_REGION 2>/dev/null >/dev/null 2>&1; then \
+		echo "Creating DynamoDB table: $$TABLE_NAME"; \
+		aws dynamodb create-table \
+			--table-name $$TABLE_NAME \
+			--attribute-definitions AttributeName=LockID,AttributeType=S \
+			--key-schema AttributeName=LockID,KeyType=HASH \
+			--billing-mode PAY_PER_REQUEST \
+			--region $$AWS_REGION 2>/dev/null || true; \
+		echo "Waiting for table to be active..."; \
+		aws dynamodb wait table-exists --table-name $$TABLE_NAME --region $$AWS_REGION 2>/dev/null || sleep 5; \
+		echo "✓ DynamoDB table created"; \
+	else \
+		echo "✓ DynamoDB table already exists"; \
+	fi
+
+# Import existing resources
+import-existing: check-env
+	@echo "Importing existing resources..."
+	@cd $(TF_DIR) && \
+	terraform import -var="db_password=$(TF_VAR_db_password)" aws_cloudwatch_log_group.api_gateway /aws/apigateway/aurora-search-api 2>/dev/null || echo "Log group may already be in state"; \
+	terraform import -var="db_password=$(TF_VAR_db_password)" aws_db_subnet_group.main aurora-db-subnet-group 2>/dev/null || echo "DB subnet group may already be in state"; \
+	terraform import -var="db_password=$(TF_VAR_db_password)" aws_iam_role.lambda aurora-lambda-role 2>/dev/null || echo "IAM role may already be in state"
+
 # Initialize Terraform
-init-terraform: check-env
+init-terraform: check-env create-terraform-backend
 	@echo "Initializing Terraform..."
 	cd $(TF_DIR) && terraform init
 
@@ -49,10 +119,31 @@ plan: init-terraform
 	@echo "Planning Terraform changes..."
 	cd $(TF_DIR) && terraform plan -var="db_password=$(TF_VAR_db_password)"
 
+# Build Lambda deployment package
+build-lambda:
+	@echo "Building Lambda deployment package for x86_64..."
+	@rm -rf $(TF_DIR)/lambda_package $(TF_DIR)/lambda_function.zip
+	@mkdir -p $(TF_DIR)/lambda_package
+	@echo "Installing dependencies for Linux x86_64..."
+	@docker run --rm --platform linux/amd64 \
+		--entrypoint /bin/bash \
+		-v $(shell pwd)/lambda:/lambda \
+		-v $(shell pwd)/$(TF_DIR)/lambda_package:/package \
+		public.ecr.aws/lambda/python:3.13 \
+		-c "pip install -r /lambda/requirements.txt -t /package --no-cache-dir && chmod -R 755 /package"
+	@echo "Copying Lambda code..."
+	@cp lambda/*.py $(TF_DIR)/lambda_package/
+	@echo "Creating deployment package..."
+	@cd $(TF_DIR)/lambda_package && zip -r ../lambda_function.zip . -q
+	@rm -rf $(TF_DIR)/lambda_package
+	@echo "✓ Lambda deployment package created: $(TF_DIR)/lambda_function.zip"
+	@ls -lh $(TF_DIR)/lambda_function.zip
+
 # Deploy infrastructure
-deploy: check-env init-terraform
+deploy: check-env build-lambda init-terraform
 	@echo "Deploying infrastructure..."
-	cd $(TF_DIR) && terraform apply -auto-approve -var="db_password=$(TF_VAR_db_password)"
+	@echo "This may take 10-15 minutes..."
+	cd $(TF_DIR) && terraform apply -auto-approve -var="db_password=$(TF_VAR_db_password)" || (echo "Deployment failed. Check errors above." && exit 1)
 	@echo ""
 	@echo "✓ Infrastructure deployed successfully!"
 	@echo "Run 'make setup-env' to populate .env with output values"
@@ -112,27 +203,47 @@ setup-env: check-env
 	echo ""; \
 	echo "✓ .env file updated with Terraform outputs"
 
-# Run message ingestion
+# Run message ingestion via Lambda
 ingest: setup-env
-	@echo "Running message ingestion..."
-	@if [ -z "$(DB_HOST)" ]; then \
-		echo "Error: DB_HOST not set. Run 'make setup-env' first."; \
+	@echo "Running message ingestion via Lambda..."
+	@if [ -z "$(API_BASE_URL)" ]; then \
+		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
 		exit 1; \
 	fi
-	cd scripts && \
-	pip install -q -r requirements.txt && \
-	python ingest.py
+	@echo "This may take several minutes depending on the number of messages..."
+	@curl -X POST "$(API_BASE_URL)/ingest" -H "Content-Type: application/json" | python3 -m json.tool
+	@echo ""
+	@echo "✓ Ingestion complete"
 
 # Run performance tests
-test: setup-env
+test: setup-env setup-python
 	@echo "Running performance tests..."
 	@if [ -z "$(API_BASE_URL)" ]; then \
 		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
 		exit 1; \
 	fi
 	cd scripts && \
-	pip install -q requests && \
-	python performance_test.py
+	$(PIP) install -q requests && \
+	$(PYTHON) performance_test.py
+
+# Test Lambda function directly
+test-lambda: setup-env
+	@echo "Testing Lambda function via API Gateway..."
+	@if [ -z "$(API_BASE_URL)" ]; then \
+		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "1. Testing health endpoint..."
+	@curl -s "$(API_BASE_URL)/health" | python3 -m json.tool || echo "Health check failed"
+	@echo ""
+	@echo "2. Testing root endpoint..."
+	@curl -s "$(API_BASE_URL)/" | python3 -m json.tool || echo "Root endpoint failed"
+	@echo ""
+	@echo "3. Testing search endpoint (query: 'test')..."
+	@curl -s "$(API_BASE_URL)/search?q=test&limit=5" | python3 -m json.tool || echo "Search failed"
+	@echo ""
+	@echo "✓ Lambda tests complete"
 
 # Clean temporary files
 clean:
@@ -140,10 +251,17 @@ clean:
 	rm -f /tmp/terraform_outputs.json
 	rm -f .env.bak
 	cd $(TF_DIR) && rm -f terraform.tfplan
+	rm -rf $(TF_DIR)/lambda_package
 	@echo "✓ Cleaned"
 
+# Clean virtual environment (optional)
+clean-venv:
+	@echo "Removing virtual environment..."
+	rm -rf $(VENV)
+	@echo "✓ Virtual environment removed"
+
 # GitHub Actions compatible targets (no interactive prompts)
-deploy-ci: check-env init-terraform
+deploy-ci: check-env build-lambda init-terraform
 	@echo "Deploying infrastructure (CI mode)..."
 	cd $(TF_DIR) && terraform apply -auto-approve -var="db_password=$(TF_VAR_db_password)"
 

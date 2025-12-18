@@ -126,8 +126,8 @@ The workflows use the Makefile, so they work the same way as local execution.
 ## API Documentation
 
 Swagger UI documentation is available at:
-- GitHub Pages: `https://your-username.github.io/aurora/`
-- Or fetch OpenAPI spec: `https://your-api.execute-api.region.amazonaws.com/openapi.json`
+- GitHub Pages: `https://fredericowu.github.io/aurora/`
+- Or fetch OpenAPI spec: `https://your-api.execute-api.region.amazonaws.com/openapi.json` (will be available after deployment)
 
 ## Project Structure
 

@@ -42,6 +42,11 @@ lambda_function.zip
 .env.*
 !.env.example
 
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
 # IDE
 .vscode/
 .idea/

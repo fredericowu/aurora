@@ -1,0 +1,38 @@
+# Python dependencies (installed during build)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+*.dist-info/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Ignore all installed packages
+annotated_doc/
+annotated_types/
+anyio/
+fastapi/
+idna/
+mangum/
+psycopg2/
+psycopg2_binary.libs/
+pydantic/
+pydantic_core/
+starlette/
+typing_extensions.py
+typing_inspection/
+bin/
+
+# Keep these source files
+!app.py
+!handler.py
+!models.py
+!database.py
+!requirements.txt
+!.gitignore
+

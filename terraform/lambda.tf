@@ -18,6 +18,10 @@ resource "aws_iam_role" "lambda" {
   tags = {
     Name = "aurora-lambda-role"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # IAM Policy for Lambda VPC access
@@ -28,13 +32,14 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc" {
 
 # Lambda Function
 resource "aws_lambda_function" "search_api" {
-  filename         = data.archive_file.lambda_zip.output_path
+  filename         = "${path.module}/lambda_function.zip"
   function_name    = "aurora-search-api"
   role            = aws_iam_role.lambda.arn
   handler         = "handler.handler"
-  runtime         = "python3.11"
+  runtime         = "python3.13"
   timeout         = 30
   memory_size     = 512
+  architectures    = ["x86_64"]
 
   vpc_config {
     subnet_ids         = aws_subnet.private[*].id
@@ -51,19 +56,11 @@ resource "aws_lambda_function" "search_api" {
     }
   }
 
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  source_code_hash = filebase64sha256("${path.module}/lambda_function.zip")
 
   tags = {
     Name = "aurora-search-api"
   }
-}
-
-# Archive Lambda function code
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambda"
-  output_path = "${path.module}/lambda_function.zip"
-  excludes    = ["__pycache__", "*.pyc", ".env*"]
 }
 
 # CloudWatch Log Group for Lambda
