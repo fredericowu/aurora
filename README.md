@@ -2,9 +2,28 @@
 
 A high-performance search engine built on AWS, using PostgreSQL's `tsvector` for full-text search. The system ingests messages from an external API, stores them in PostgreSQL RDS, and exposes a search API via AWS Lambda and API Gateway.
 
+## Assignment Requirements
+
+This project was built to meet the specifications outlined in the [Backend Engineer Assignment](https://gist.github.com/ogurtsov/a4a593b2bacbf6520968d47395d30248).
+
+### Core Requirements ✅
+
+- ✅ **API Service in Latest Stable Python**: Implemented using Python 3.13 with FastAPI
+- ✅ **Paginated Results**: Search endpoint supports `page` and `limit` parameters
+- ✅ **Deployed & Publicly Accessible**: Live on AWS Lambda + API Gateway
+- ✅ **Sub-100ms Response Time**: Achieved 77-92ms average response time
+
+### Bonus Goals ✅
+
+- ✅ **Design Notes**: Alternative approaches documented (see [Alternative Design Approaches](#alternative-design-approaches))
+- ✅ **Latency Reduction Strategy**: 30ms optimization strategies documented (see [Reducing Latency to 30ms](#reducing-latency-to-30ms))
+
+**Live API**: https://4vihdxtri6.execute-api.us-east-1.amazonaws.com  
+**Documentation**: https://fredericowu.github.io/aurora/
+
 ## Architecture
 
-![Architecture Diagram](images/architecture-diagram.png)
+![Architecture Diagram](docs/architecture-diagram.png)
 
 ### Components
 

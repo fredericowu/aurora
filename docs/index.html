@@ -147,44 +147,8 @@
     <section id="architecture" class="py-20 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 class="text-4xl font-bold text-center mb-12">Architecture</h2>
-            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
-                <div class="mermaid">
-graph TB
-    User[fa:fa-user User/Client]
-    GHA[fa:fa-github GitHub Actions<br/>CI/CD Pipeline]
-    
-    subgraph AWS Cloud
-        AGW[fa:fa-cloud API Gateway<br/>HTTP API]
-        Lambda[fa:fa-server AWS Lambda<br/>FastAPI + Mangum]
-        RDS[(fa:fa-database PostgreSQL RDS<br/>tsvector + GIN Index)]
-        
-        subgraph VPC
-            Lambda
-            RDS
-        end
-    end
-    
-    Pages[fa:fa-book GitHub Pages<br/>Swagger UI Docs]
-    
-    User -->|HTTPS Request| AGW
-    AGW -->|Invoke| Lambda
-    Lambda -->|SQL Query| RDS
-    RDS -->|Results| Lambda
-    Lambda -->|JSON Response| AGW
-    AGW -->|Response| User
-    
-    GHA -->|Deploy Infrastructure| AWS Cloud
-    GHA -->|Trigger Ingestion| Lambda
-    Lambda -->|Store Messages| RDS
-    
-    User -.->|View Docs| Pages
-    
-    style Lambda fill:#3b82f6,stroke:#2563eb,color:#fff
-    style RDS fill:#10b981,stroke:#059669,color:#fff
-    style AGW fill:#f59e0b,stroke:#d97706,color:#fff
-    style GHA fill:#6b7280,stroke:#4b5563,color:#fff
-    style Pages fill:#8b5cf6,stroke:#7c3aed,color:#fff
-                </div>
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8 flex justify-center">
+                <img src="architecture-diagram.png" alt="Aurora Search Engine Architecture" class="max-w-full h-auto rounded-lg" style="max-height: 600px;">
             </div>
             <div class="grid md:grid-cols-2 gap-8">
                 <div class="bg-white rounded-lg shadow p-6">

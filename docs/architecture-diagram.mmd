@@ -1,0 +1,54 @@
+graph TB
+    User[User/Client]
+    ExternalAPI[External Messages API]
+    
+    subgraph GitHubActions[GitHub Actions]
+        Deploy[Deploy Infrastructure]
+        Ingest[Ingest Messages]
+        Test[Performance Tests]
+    end
+    
+    subgraph AWSCloud[AWS Cloud]
+        AGW[API Gateway<br/>HTTP API]
+        
+        subgraph VPC[VPC - Private Network]
+            Lambda[AWS Lambda<br/>FastAPI + Mangum<br/>Python 3.13]
+            RDS[(PostgreSQL RDS<br/>tsvector + GIN Index<br/>3000+ messages)]
+        end
+    end
+    
+    Pages[GitHub Pages<br/>Swagger UI Docs]
+    
+    %% User interactions
+    User -->|HTTPS GET /search| AGW
+    AGW -->|Invoke| Lambda
+    Lambda -->|SQL Query| RDS
+    RDS -->|Results| Lambda
+    Lambda -->|JSON Response| AGW
+    AGW -->|Response| User
+    User -.->|View Docs| Pages
+    
+    %% CI/CD flow
+    Deploy -->|Terraform Apply| AWSCloud
+    Ingest -->|POST /ingest| AGW
+    AGW -->|Trigger| Lambda
+    Lambda -->|Fetch Messages| ExternalAPI
+    ExternalAPI -->|Paginated Data| Lambda
+    Lambda -->|Store & Deduplicate| RDS
+    Test -->|Performance Test| AGW
+    
+    %% Styling
+    classDef userClass fill:#3b82f6,stroke:#2563eb,color:#fff
+    classDef awsClass fill:#ff9900,stroke:#ec7211,color:#fff
+    classDef lambdaClass fill:#10b981,stroke:#059669,color:#fff
+    classDef dbClass fill:#8b5cf6,stroke:#7c3aed,color:#fff
+    classDef ciClass fill:#6b7280,stroke:#4b5563,color:#fff
+    classDef docsClass fill:#f59e0b,stroke:#d97706,color:#fff
+    
+    class User userClass
+    class AGW awsClass
+    class Lambda lambdaClass
+    class RDS dbClass
+    class Deploy,Ingest,Test ciClass
+    class Pages docsClass
+
