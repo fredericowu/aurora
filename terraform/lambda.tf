@@ -38,7 +38,7 @@ resource "aws_lambda_function" "search_api" {
   handler         = "handler.handler"
   runtime         = "python3.13"
   timeout         = 30
-  memory_size     = 512
+  memory_size     = 1024
   architectures    = ["x86_64"]
 
   vpc_config {

@@ -43,19 +43,17 @@ def search_messages(query: str, page: int = 0, limit: int = 10) -> PaginatedMess
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             try:
-                # First, get total count of matching messages
+                # Single optimized query: get results and total count together
+                # Using window function COUNT(*) OVER() to get total without separate query
                 # Using 'simple' configuration for no stop words and no stemming
-                count_query = """
-                    SELECT COUNT(*) as total
-                    FROM messages
-                    WHERE search_vector @@ plainto_tsquery('simple', %s)
-                """
-                cur.execute(count_query, (query,))
-                total = cur.fetchone()['total']
-                
-                # Then get the paginated results with ranking
                 search_query = """
-                    SELECT id, user_id, user_name, timestamp, message
+                    SELECT 
+                        id, 
+                        user_id, 
+                        user_name, 
+                        timestamp, 
+                        message,
+                        COUNT(*) OVER() as total_count
                     FROM messages
                     WHERE search_vector @@ plainto_tsquery('simple', %s)
                     ORDER BY ts_rank(search_vector, plainto_tsquery('simple', %s)) DESC
@@ -63,6 +61,9 @@ def search_messages(query: str, page: int = 0, limit: int = 10) -> PaginatedMess
                 """
                 cur.execute(search_query, (query, query, limit, offset))
                 rows = cur.fetchall()
+                
+                # Extract total from first row, or 0 if no results
+                total = rows[0]['total_count'] if rows else 0
                 
                 # Convert rows to Message objects
                 messages = [

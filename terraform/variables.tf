@@ -31,7 +31,7 @@ variable "db_name" {
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string
-  default     = "db.t3.micro"
+  default     = "db.t4g.small"
 }
 
 variable "vpc_cidr" {

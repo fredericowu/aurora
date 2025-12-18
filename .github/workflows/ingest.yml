@@ -48,7 +48,7 @@ jobs:
           EOF
       
       - name: Setup environment from Terraform outputs
-        run: make setup-env-ci
+        run: make setup-env
       
       - name: Run ingestion script
         run: make ingest

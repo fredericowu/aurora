@@ -71,11 +71,13 @@ jobs:
       
       - name: Terraform Apply
         if: github.event_name == 'push' || github.event.inputs.action == 'apply'
-        run: make deploy-ci
+        run: make deploy
       
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
-        run: make destroy
+        run: |
+          cd terraform
+          terraform destroy -auto-approve -var="db_password=$DB_PASSWORD"
       
       - name: Setup Environment Variables
         if: github.event_name == 'push' || github.event.inputs.action == 'apply'

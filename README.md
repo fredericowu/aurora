@@ -88,20 +88,23 @@ make ingest
 ### 5. Run Performance Tests
 
 ```bash
-make test
+make performance-test
 ```
 
 ## Makefile Commands
 
+All Make targets work in both local and CI/CD environments:
+
 ```bash
-make help          # Show all available commands
-make deploy        # Deploy infrastructure
-make plan          # Plan Terraform changes
-make destroy       # Destroy infrastructure (with confirmation)
-make setup-env     # Populate .env from Terraform outputs
-make ingest        # Run message ingestion
-make test          # Run performance tests
-make clean         # Clean temporary files
+make help             # Show all available commands
+make deploy           # Deploy infrastructure (auto-approve)
+make plan             # Plan Terraform changes
+make destroy          # Destroy infrastructure (with confirmation in local, auto in CI)
+make setup-env        # Setup environment (writes to .env locally, $GITHUB_ENV in CI)
+make ingest           # Run message ingestion
+make performance-test # Run performance tests
+make test-lambda      # Test Lambda endpoints
+make clean            # Clean temporary files
 ```
 
 ## GitHub Actions Setup
@@ -116,7 +119,12 @@ Add the following secrets to your GitHub repository:
 - `DB_PASSWORD`: RDS master password
 - `DB_USER`: RDS master username (optional, default: postgres)
 
-The workflows use the Makefile, so they work the same way as local execution.
+### How It Works
+
+The workflows use the same Makefile targets as local development. The targets automatically detect if they're running in CI (via `$GITHUB_ENV`) and adjust their behavior:
+
+- **Local**: Writes to `.env` file, may prompt for confirmation
+- **CI/CD**: Exports to `$GITHUB_ENV`, runs non-interactively
 
 ### Manual Workflow Triggers
 

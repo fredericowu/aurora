@@ -14,6 +14,12 @@ output "rds_endpoint" {
   sensitive   = true
 }
 
+output "rds_proxy_endpoint" {
+  description = "RDS Proxy endpoint (recommended for Lambda)"
+  value       = aws_db_proxy.main.endpoint
+  sensitive   = true
+}
+
 output "rds_port" {
   description = "RDS instance port"
   value       = aws_db_instance.main.port

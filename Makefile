@@ -1,4 +1,4 @@
-.PHONY: help deploy destroy plan init-terraform setup-env ingest test clean venv setup-python
+.PHONY: help deploy destroy plan init-terraform setup-env ingest performance-test test-lambda clean clean-venv venv setup-python build-lambda check-env create-terraform-backend import-existing
 
 # Default target
 help:
@@ -11,12 +11,13 @@ help:
 	@echo "  make init-terraform    - Initialize Terraform"
 	@echo "  make plan              - Plan Terraform changes"
 	@echo "  make deploy            - Build Lambda and deploy infrastructure"
-	@echo "  make destroy           - Destroy infrastructure"
-	@echo "  make setup-env         - Populate .env from Terraform outputs"
+	@echo "  make destroy           - Destroy infrastructure (with confirmation)"
+	@echo "  make setup-env         - Setup environment (works in local & CI)"
 	@echo "  make ingest            - Run message ingestion"
 	@echo "  make performance-test  - Run performance tests"
 	@echo "  make test-lambda       - Test Lambda function via API Gateway"
 	@echo "  make clean             - Clean temporary files"
+	@echo "  make clean-venv        - Remove Python virtual environment"
 	@echo ""
 
 # Python virtual environment
@@ -122,8 +123,8 @@ plan: init-terraform
 # Build Lambda deployment package
 build-lambda:
 	@echo "Building Lambda deployment package for x86_64..."
-	@sudo rm -rf $(TF_DIR)/lambda_package || rm -rf $(TF_DIR)/lambda_package || true
-	@rm -f $(TF_DIR)/lambda_function.zip
+	# @sudo rm -rf $(TF_DIR)/lambda_package || rm -rf $(TF_DIR)/lambda_package || true
+	# @rm -f $(TF_DIR)/lambda_function.zip
 	@mkdir -p $(TF_DIR)/lambda_package
 	@echo "Installing dependencies for Linux x86_64..."
 	@docker run --rm --platform linux/amd64 \
@@ -160,53 +161,63 @@ destroy: check-env
 	fi
 
 # Setup environment variables from Terraform outputs
+# Works in both local and CI environments
 setup-env: check-env
 	@echo "Retrieving values from Terraform outputs..."
 	@cd $(TF_DIR) && terraform output -json > /tmp/terraform_outputs.json 2>/dev/null || (echo "Error: Terraform outputs not available. Run 'make deploy' first." && exit 1)
 	@echo ""
-	@echo "Updating .env file with Terraform outputs..."
 	@DB_HOST=$$(cd $(TF_DIR) && terraform output -raw rds_endpoint 2>/dev/null); \
 	DB_PORT=$$(cd $(TF_DIR) && terraform output -raw rds_port 2>/dev/null); \
 	DB_NAME=$$(cd $(TF_DIR) && terraform output -raw rds_database_name 2>/dev/null); \
 	API_URL=$$(cd $(TF_DIR) && terraform output -raw api_gateway_url 2>/dev/null); \
-	if [ -n "$$DB_HOST" ]; then \
-		if grep -q "^DB_HOST=" .env 2>/dev/null; then \
-			sed -i.bak "s|^DB_HOST=.*|DB_HOST=$$DB_HOST|" .env; \
-		else \
-			echo "DB_HOST=$$DB_HOST" >> .env; \
+	if [ -n "$$GITHUB_ENV" ]; then \
+		echo "Setting up environment for GitHub Actions..."; \
+		echo "DB_HOST=$$DB_HOST" >> $$GITHUB_ENV; \
+		echo "DB_PORT=$$DB_PORT" >> $$GITHUB_ENV; \
+		echo "DB_NAME=$$DB_NAME" >> $$GITHUB_ENV; \
+		echo "API_BASE_URL=$$API_URL" >> $$GITHUB_ENV; \
+		echo "✓ Environment variables exported to GitHub Actions"; \
+	else \
+		echo "Updating .env file..."; \
+		if [ -n "$$DB_HOST" ]; then \
+			if grep -q "^DB_HOST=" .env 2>/dev/null; then \
+				sed -i.bak "s|^DB_HOST=.*|DB_HOST=$$DB_HOST|" .env; \
+			else \
+				echo "DB_HOST=$$DB_HOST" >> .env; \
+			fi; \
+			echo "  ✓ DB_HOST=$$DB_HOST"; \
 		fi; \
-		echo "  ✓ DB_HOST=$$DB_HOST"; \
-	fi; \
-	if [ -n "$$DB_PORT" ]; then \
-		if grep -q "^DB_PORT=" .env 2>/dev/null; then \
-			sed -i.bak "s|^DB_PORT=.*|DB_PORT=$$DB_PORT|" .env; \
-		else \
-			echo "DB_PORT=$$DB_PORT" >> .env; \
+		if [ -n "$$DB_PORT" ]; then \
+			if grep -q "^DB_PORT=" .env 2>/dev/null; then \
+				sed -i.bak "s|^DB_PORT=.*|DB_PORT=$$DB_PORT|" .env; \
+			else \
+				echo "DB_PORT=$$DB_PORT" >> .env; \
+			fi; \
+			echo "  ✓ DB_PORT=$$DB_PORT"; \
 		fi; \
-		echo "  ✓ DB_PORT=$$DB_PORT"; \
-	fi; \
-	if [ -n "$$DB_NAME" ]; then \
-		if grep -q "^DB_NAME=" .env 2>/dev/null; then \
-			sed -i.bak "s|^DB_NAME=.*|DB_NAME=$$DB_NAME|" .env; \
-		else \
-			echo "DB_NAME=$$DB_NAME" >> .env; \
+		if [ -n "$$DB_NAME" ]; then \
+			if grep -q "^DB_NAME=" .env 2>/dev/null; then \
+				sed -i.bak "s|^DB_NAME=.*|DB_NAME=$$DB_NAME|" .env; \
+			else \
+				echo "DB_NAME=$$DB_NAME" >> .env; \
+			fi; \
+			echo "  ✓ DB_NAME=$$DB_NAME"; \
 		fi; \
-		echo "  ✓ DB_NAME=$$DB_NAME"; \
-	fi; \
-	if [ -n "$$API_URL" ]; then \
-		if grep -q "^API_BASE_URL=" .env 2>/dev/null; then \
-			sed -i.bak "s|^API_BASE_URL=.*|API_BASE_URL=$$API_URL|" .env; \
-		else \
-			echo "API_BASE_URL=$$API_URL" >> .env; \
+		if [ -n "$$API_URL" ]; then \
+			if grep -q "^API_BASE_URL=" .env 2>/dev/null; then \
+				sed -i.bak "s|^API_BASE_URL=.*|API_BASE_URL=$$API_URL|" .env; \
+			else \
+				echo "API_BASE_URL=$$API_URL" >> .env; \
+			fi; \
+			echo "  ✓ API_BASE_URL=$$API_URL"; \
 		fi; \
-		echo "  ✓ API_BASE_URL=$$API_URL"; \
-	fi; \
-	rm -f .env.bak 2>/dev/null || true; \
-	echo ""; \
-	echo "✓ .env file updated with Terraform outputs"
+		rm -f .env.bak 2>/dev/null || true; \
+		echo ""; \
+		echo "✓ .env file updated with Terraform outputs"; \
+	fi
 
 # Run message ingestion via Lambda
-ingest: setup-env
+ingest:
 	@echo "Running message ingestion via Lambda..."
 	@if [ -z "$(API_BASE_URL)" ]; then \
 		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
@@ -218,7 +229,7 @@ ingest: setup-env
 	@echo "✓ Ingestion complete"
 
 # Run performance tests
-performance-test: setup-env setup-python
+performance-test: setup-python
 	@echo "Running performance tests..."
 	@if [ -z "$(API_BASE_URL)" ]; then \
 		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
@@ -227,11 +238,8 @@ performance-test: setup-env setup-python
 	@$(PIP) install -q requests
 	@cd scripts && ../$(PYTHON) performance_test.py
 
-# Alias for backward compatibility
-test: performance-test
-
 # Test Lambda function directly
-test-lambda: setup-env
+test-lambda:
 	@echo "Testing Lambda function via API Gateway..."
 	@if [ -z "$(API_BASE_URL)" ]; then \
 		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
@@ -263,21 +271,4 @@ clean-venv:
 	@echo "Removing virtual environment..."
 	rm -rf $(VENV)
 	@echo "✓ Virtual environment removed"
-
-# GitHub Actions compatible targets (no interactive prompts)
-deploy-ci: check-env build-lambda init-terraform
-	@echo "Deploying infrastructure (CI mode)..."
-	cd $(TF_DIR) && terraform apply -auto-approve -var="db_password=$(TF_VAR_db_password)"
-
-setup-env-ci: check-env
-	@echo "Setting up environment (CI mode)..."
-	@DB_HOST=$$(cd $(TF_DIR) && terraform output -raw rds_endpoint 2>/dev/null); \
-	DB_PORT=$$(cd $(TF_DIR) && terraform output -raw rds_port 2>/dev/null); \
-	DB_NAME=$$(cd $(TF_DIR) && terraform output -raw rds_database_name 2>/dev/null); \
-	API_URL=$$(cd $(TF_DIR) && terraform output -raw api_gateway_url 2>/dev/null); \
-	echo "DB_HOST=$$DB_HOST" >> $$GITHUB_ENV; \
-	echo "DB_PORT=$$DB_PORT" >> $$GITHUB_ENV; \
-	echo "DB_NAME=$$DB_NAME" >> $$GITHUB_ENV; \
-	echo "API_BASE_URL=$$API_URL" >> $$GITHUB_ENV; \
-	echo "✓ Environment variables set for GitHub Actions"
 

@@ -40,9 +40,12 @@ def init_connection_pool():
         raise ValueError("Missing required database configuration")
     
     try:
+        # With RDS Proxy, we can use a smaller pool since proxy handles pooling
+        # This reduces Lambda memory usage and connection overhead
         _connection_pool = psycopg2.pool.SimpleConnectionPool(
             minconn=1,
-            maxconn=5,
+            maxconn=2,
+            connect_timeout=5,
             **db_config
         )
         logger.info("Database connection pool initialized")
