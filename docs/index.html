@@ -1,50 +1,407 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aurora Search API Documentation</title>
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <title>Aurora Search Engine - High-Performance Full-Text Search on AWS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#3b82f6',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#60a5fa',
+                lineColor: '#6b7280',
+                secondaryColor: '#10b981',
+                tertiaryColor: '#f59e0b'
+            }
+        });
+    </script>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        .swagger-ui .topbar {
-            background-color: #1f2937;
-        }
-        .topbar-wrapper .link {
-            content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>');
-        }
-        .info .title {
-            color: #1f2937;
+        .code-block {
+            background: #1e293b;
+            border-radius: 0.5rem;
         }
     </style>
 </head>
-<body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
-    <script>
-        window.onload = function() {
-            window.ui = SwaggerUIBundle({
-                url: "./openapi.json",
-                dom_id: '#swagger-ui',
-                deepLinking: true,
-                presets: [
-                    SwaggerUIBundle.presets.apis,
-                    SwaggerUIStandalonePreset
-                ],
-                plugins: [
-                    SwaggerUIBundle.plugins.DownloadUrl
-                ],
-                layout: "StandaloneLayout",
-                defaultModelsExpandDepth: 1,
-                defaultModelExpandDepth: 1,
-                tryItOutEnabled: true
-            });
-        };
-    </script>
+<body class="bg-gray-50 text-gray-900">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <span class="text-xl font-bold text-gray-900">Aurora</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#features" class="text-gray-700 hover:text-blue-600 transition">Features</a>
+                    <a href="#architecture" class="text-gray-700 hover:text-blue-600 transition">Architecture</a>
+                    <a href="#quickstart" class="text-gray-700 hover:text-blue-600 transition">Quick Start</a>
+                    <a href="#performance" class="text-gray-700 hover:text-blue-600 transition">Performance</a>
+                    <a href="./api.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">API Docs</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">Aurora Search Engine</h1>
+            <p class="text-xl md:text-2xl mb-8 text-blue-100">High-performance full-text search built on AWS with PostgreSQL tsvector</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="#quickstart" class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition">Get Started</a>
+                <a href="./api.html" class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">API Documentation</a>
+            </div>
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                    <div class="text-3xl font-bold">< 100ms</div>
+                    <div class="text-blue-100">Response Time</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                    <div class="text-3xl font-bold">~$20</div>
+                    <div class="text-blue-100">Monthly Cost</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                    <div class="text-3xl font-bold">100%</div>
+                    <div class="text-blue-100">Serverless</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center mb-12">Features</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="p-6 border border-gray-200 rounded-lg hover:shadow-lg transition">
+                    <div class="text-blue-600 mb-4">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Full-Text Search</h3>
+                    <p class="text-gray-600">PostgreSQL tsvector with GIN indexes for blazing-fast search queries</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg hover:shadow-lg transition">
+                    <div class="text-green-600 mb-4">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Auto Deduplication</h3>
+                    <p class="text-gray-600">Automatic message deduplication by ID during ingestion</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg hover:shadow-lg transition">
+                    <div class="text-purple-600 mb-4">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Infrastructure as Code</h3>
+                    <p class="text-gray-600">Complete Terraform configuration for reproducible deployments</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg hover:shadow-lg transition">
+                    <div class="text-yellow-600 mb-4">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">OpenAPI Documentation</h3>
+                    <p class="text-gray-600">Auto-generated Swagger UI with interactive API testing</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg hover:shadow-lg transition">
+                    <div class="text-red-600 mb-4">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Performance Testing</h3>
+                    <p class="text-gray-600">Built-in performance test suite with detailed latency metrics</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg hover:shadow-lg transition">
+                    <div class="text-indigo-600 mb-4">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Pagination Support</h3>
+                    <p class="text-gray-600">Efficient pagination for large result sets with customizable page size</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center mb-12">Architecture</h2>
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <div class="mermaid">
+graph TB
+    User[fa:fa-user User/Client]
+    GHA[fa:fa-github GitHub Actions<br/>CI/CD Pipeline]
+    
+    subgraph AWS Cloud
+        AGW[fa:fa-cloud API Gateway<br/>HTTP API]
+        Lambda[fa:fa-server AWS Lambda<br/>FastAPI + Mangum]
+        RDS[(fa:fa-database PostgreSQL RDS<br/>tsvector + GIN Index)]
+        
+        subgraph VPC
+            Lambda
+            RDS
+        end
+    end
+    
+    Pages[fa:fa-book GitHub Pages<br/>Swagger UI Docs]
+    
+    User -->|HTTPS Request| AGW
+    AGW -->|Invoke| Lambda
+    Lambda -->|SQL Query| RDS
+    RDS -->|Results| Lambda
+    Lambda -->|JSON Response| AGW
+    AGW -->|Response| User
+    
+    GHA -->|Deploy Infrastructure| AWS Cloud
+    GHA -->|Trigger Ingestion| Lambda
+    Lambda -->|Store Messages| RDS
+    
+    User -.->|View Docs| Pages
+    
+    style Lambda fill:#3b82f6,stroke:#2563eb,color:#fff
+    style RDS fill:#10b981,stroke:#059669,color:#fff
+    style AGW fill:#f59e0b,stroke:#d97706,color:#fff
+    style GHA fill:#6b7280,stroke:#4b5563,color:#fff
+    style Pages fill:#8b5cf6,stroke:#7c3aed,color:#fff
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Components</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="text-blue-600 mr-2">▸</span>
+                            <span><strong>API Gateway:</strong> HTTP API exposing search endpoints</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-600 mr-2">▸</span>
+                            <span><strong>Lambda:</strong> FastAPI application with Mangum adapter</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-600 mr-2">▸</span>
+                            <span><strong>RDS PostgreSQL:</strong> Messages stored with tsvector for search</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-yellow-600 mr-2">▸</span>
+                            <span><strong>VPC:</strong> Private network with security groups</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-red-600 mr-2">▸</span>
+                            <span><strong>GitHub Actions:</strong> Automated deployment and ingestion</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Database Schema</h3>
+                    <div class="code-block p-4 text-sm text-gray-300 overflow-x-auto">
+                        <pre><code>CREATE TABLE messages (
+    id VARCHAR PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    user_name VARCHAR NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    message TEXT NOT NULL,
+    search_vector TSVECTOR
+);
+
+CREATE INDEX idx_search_vector
+ON messages USING GIN(search_vector);</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quickstart" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center mb-12">Quick Start</h2>
+            <div class="max-w-3xl mx-auto space-y-8">
+                <div class="border-l-4 border-blue-600 pl-6">
+                    <h3 class="text-2xl font-semibold mb-3">1. Configure Environment</h3>
+                    <p class="text-gray-600 mb-3">Create a <code class="bg-gray-100 px-2 py-1 rounded">.env</code> file with your AWS credentials:</p>
+                    <div class="code-block p-4 text-sm text-gray-300">
+                        <pre><code>cp .env.example .env
+# Edit .env with your values:
+# - AWS_ACCESS_KEY_ID
+# - AWS_SECRET_ACCESS_KEY
+# - AWS_REGION
+# - DB_PASSWORD</code></pre>
+                    </div>
+                </div>
+                
+                <div class="border-l-4 border-green-600 pl-6">
+                    <h3 class="text-2xl font-semibold mb-3">2. Deploy Infrastructure</h3>
+                    <p class="text-gray-600 mb-3">Deploy all AWS resources with a single command:</p>
+                    <div class="code-block p-4 text-sm text-gray-300">
+                        <pre><code>make deploy</code></pre>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">This takes ~10-15 minutes and creates: VPC, RDS, Lambda, API Gateway</p>
+                </div>
+                
+                <div class="border-l-4 border-purple-600 pl-6">
+                    <h3 class="text-2xl font-semibold mb-3">3. Setup Environment Variables</h3>
+                    <p class="text-gray-600 mb-3">Populate <code class="bg-gray-100 px-2 py-1 rounded">.env</code> from Terraform outputs:</p>
+                    <div class="code-block p-4 text-sm text-gray-300">
+                        <pre><code>make setup-env</code></pre>
+                    </div>
+                </div>
+                
+                <div class="border-l-4 border-yellow-600 pl-6">
+                    <h3 class="text-2xl font-semibold mb-3">4. Ingest Messages</h3>
+                    <p class="text-gray-600 mb-3">Load messages from the external API:</p>
+                    <div class="code-block p-4 text-sm text-gray-300">
+                        <pre><code>make ingest</code></pre>
+                    </div>
+                </div>
+                
+                <div class="border-l-4 border-red-600 pl-6">
+                    <h3 class="text-2xl font-semibold mb-3">5. Run Performance Tests</h3>
+                    <p class="text-gray-600 mb-3">Validate response times and performance:</p>
+                    <div class="code-block p-4 text-sm text-gray-300">
+                        <pre><code>make performance-test</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Section -->
+    <section id="performance" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center mb-12">Performance</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Optimization Techniques</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span><strong>GIN Index:</strong> Generalized Inverted Index on tsvector column</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span><strong>Connection Pooling:</strong> Reuse database connections in Lambda</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span><strong>Prepared Statements:</strong> Query plan caching for efficiency</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span><strong>Efficient Pagination:</strong> Limit result sets to reduce transfer time</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-2xl font-semibold mb-4">Cost Breakdown</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-700">RDS db.t3.micro</span>
+                                <span class="font-semibold">$15/mo</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-700">API Gateway (1M req)</span>
+                                <span class="font-semibold">$3.50/mo</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full" style="width: 17.5%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-700">Data Transfer</span>
+                                <span class="font-semibold">$1/mo</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-purple-600 h-2 rounded-full" style="width: 5%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-gray-700">Lambda (1M req)</span>
+                                <span class="font-semibold">$0.20/mo</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-yellow-600 h-2 rounded-full" style="width: 1%"></div>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-gray-200">
+                            <div class="flex justify-between">
+                                <span class="text-lg font-bold">Total</span>
+                                <span class="text-lg font-bold text-blue-600">~$20/mo</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Aurora Search Engine</h3>
+                    <p class="text-gray-400">High-performance full-text search built on AWS with PostgreSQL tsvector</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Resources</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="./api.html" class="hover:text-white transition">API Documentation</a></li>
+                        <li><a href="https://github.com/fredericowu/aurora" class="hover:text-white transition">GitHub Repository</a></li>
+                        <li><a href="#architecture" class="hover:text-white transition">Architecture</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Tech Stack</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-gray-800 px-3 py-1 rounded text-sm">AWS Lambda</span>
+                        <span class="bg-gray-800 px-3 py-1 rounded text-sm">PostgreSQL</span>
+                        <span class="bg-gray-800 px-3 py-1 rounded text-sm">FastAPI</span>
+                        <span class="bg-gray-800 px-3 py-1 rounded text-sm">Terraform</span>
+                        <span class="bg-gray-800 px-3 py-1 rounded text-sm">Python 3.13</span>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>© 2025 Aurora Search Engine. MIT License.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
-
