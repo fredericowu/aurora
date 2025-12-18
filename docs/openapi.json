@@ -1,1 +1,276 @@
-{"openapi":"3.1.0","info":{"title":"Aurora Search API","description":"Search engine API for messages using PostgreSQL tsvector","version":"1.0.0"},"paths":{"/":{"get":{"tags":["Health"],"summary":"Root","description":"Root endpoint for health check.","operationId":"root__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/search":{"get":{"tags":["Search"],"summary":"Search","description":"Search messages using full-text search.\n\nReturns paginated results matching the search query.","operationId":"search_search_get","parameters":[{"name":"q","in":"query","required":true,"schema":{"type":"string","minLength":1,"description":"Search query string","title":"Q"},"description":"Search query string"},{"name":"page","in":"query","required":false,"schema":{"type":"integer","minimum":0,"description":"Page number (0-indexed)","default":0,"title":"Page"},"description":"Page number (0-indexed)"},{"name":"limit","in":"query","required":false,"schema":{"type":"integer","maximum":100,"minimum":1,"description":"Number of results per page","default":10,"title":"Limit"},"description":"Number of results per page"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PaginatedMessages"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/health":{"get":{"tags":["Health"],"summary":"Health","description":"Health check endpoint.","operationId":"health_health_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/ingest":{"post":{"tags":["Admin"],"summary":"Ingest Messages","description":"Ingest messages from external API into the database.\n\nThis endpoint fetches all messages from the external API with pagination\nand stores them in the database with deduplication.","operationId":"ingest_messages_ingest_post","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"Message":{"properties":{"id":{"type":"string","title":"Id"},"user_id":{"type":"string","title":"User Id"},"user_name":{"type":"string","title":"User Name"},"timestamp":{"type":"string","title":"Timestamp"},"message":{"type":"string","title":"Message"}},"type":"object","required":["id","user_id","user_name","timestamp","message"],"title":"Message","description":"Message model matching the external API structure.","example":{"id":"msg_123","message":"This is a sample message","timestamp":"2024-01-01T00:00:00Z","user_id":"user_456","user_name":"John Doe"}},"PaginatedMessages":{"properties":{"total":{"type":"integer","title":"Total","description":"Total number of messages"},"items":{"items":{"$ref":"#/components/schemas/Message"},"type":"array","title":"Items","description":"List of messages"}},"type":"object","required":["total","items"],"title":"PaginatedMessages","description":"Paginated response model matching the external API structure.","example":{"items":[{"id":"msg_123","message":"This is a sample message","timestamp":"2024-01-01T00:00:00Z","user_id":"user_456","user_name":"John Doe"}],"total":100}},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}}
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aurora Search API",
+    "description": "Search engine API for messages using PostgreSQL tsvector",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Root",
+        "description": "Root endpoint for health check.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search",
+        "description": "Search messages using full-text search.\n\nReturns paginated results matching the search query.",
+        "operationId": "search_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Search query string",
+              "title": "Q"
+            },
+            "description": "Search query string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Page number (0-indexed)",
+              "default": 0,
+              "title": "Page"
+            },
+            "description": "Page number (0-indexed)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Number of results per page",
+              "default": 10,
+              "title": "Limit"
+            },
+            "description": "Number of results per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMessages"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health",
+        "description": "Health check endpoint.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ingest": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Ingest Messages",
+        "description": "Ingest messages from external API into the database.\n\nThis endpoint fetches all messages from the external API with pagination\nand stores them in the database with deduplication.",
+        "operationId": "ingest_messages_ingest_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Message": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "user_name": {
+            "type": "string",
+            "title": "User Name"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "user_name",
+          "timestamp",
+          "message"
+        ],
+        "title": "Message",
+        "description": "Message model matching the external API structure.",
+        "example": {
+          "id": "msg_123",
+          "message": "This is a sample message",
+          "timestamp": "2024-01-01T00:00:00Z",
+          "user_id": "user_456",
+          "user_name": "John Doe"
+        }
+      },
+      "PaginatedMessages": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of messages"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "List of messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "PaginatedMessages",
+        "description": "Paginated response model matching the external API structure.",
+        "example": {
+          "items": [
+            {
+              "id": "msg_123",
+              "message": "This is a sample message",
+              "timestamp": "2024-01-01T00:00:00Z",
+              "user_id": "user_456",
+              "user_name": "John Doe"
+            }
+          ],
+          "total": 100
+        }
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://4vihdxtri6.execute-api.us-east-1.amazonaws.com",
+      "description": "Production API Gateway"
+    }
+  ]
+}
