@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'terraform/**'
+      - 'lambda/**'
+      - 'Makefile'
   workflow_dispatch:
     inputs:
       action:
@@ -38,6 +40,12 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.6.0'
+          terraform_wrapper: false
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       
       - name: Setup Make
         run: |
@@ -53,6 +61,10 @@ jobs:
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           EOF
       
+      - name: Build Lambda Package
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: make build-lambda
+      
       - name: Terraform Plan
         if: github.event_name == 'push' || github.event.inputs.action == 'plan'
         run: make plan
@@ -65,9 +77,22 @@ jobs:
         if: github.event.inputs.action == 'destroy'
         run: make destroy
       
+      - name: Setup Environment Variables
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: make setup-env
+      
       - name: Output API Gateway URL
         if: github.event_name == 'push' || github.event.inputs.action == 'apply'
         run: |
           cd terraform
-          terraform output api_gateway_url
+          echo "API_GATEWAY_URL=$(terraform output -raw api_gateway_url)"
+          echo "API_GATEWAY_URL=$(terraform output -raw api_gateway_url)" >> $GITHUB_ENV
+      
+      - name: Test Lambda Endpoints
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: make test-lambda
+      
+      - name: Run Performance Tests
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: make performance-test
 

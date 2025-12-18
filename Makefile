@@ -5,18 +5,18 @@ help:
 	@echo "Aurora Search Engine - Makefile"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make venv           - Create Python virtual environment"
-	@echo "  make setup-python   - Install Python dependencies"
-	@echo "  make build-lambda   - Build Lambda deployment package (x86_64)"
-	@echo "  make init-terraform - Initialize Terraform"
-	@echo "  make plan           - Plan Terraform changes"
-	@echo "  make deploy         - Build Lambda and deploy infrastructure"
-	@echo "  make destroy        - Destroy infrastructure"
-	@echo "  make setup-env      - Populate .env from Terraform outputs"
-	@echo "  make ingest         - Run message ingestion"
-	@echo "  make test           - Run performance tests"
-	@echo "  make test-lambda    - Test Lambda function via API Gateway"
-	@echo "  make clean          - Clean temporary files"
+	@echo "  make venv              - Create Python virtual environment"
+	@echo "  make setup-python      - Install Python dependencies"
+	@echo "  make build-lambda      - Build Lambda deployment package (x86_64)"
+	@echo "  make init-terraform    - Initialize Terraform"
+	@echo "  make plan              - Plan Terraform changes"
+	@echo "  make deploy            - Build Lambda and deploy infrastructure"
+	@echo "  make destroy           - Destroy infrastructure"
+	@echo "  make setup-env         - Populate .env from Terraform outputs"
+	@echo "  make ingest            - Run message ingestion"
+	@echo "  make performance-test  - Run performance tests"
+	@echo "  make test-lambda       - Test Lambda function via API Gateway"
+	@echo "  make clean             - Clean temporary files"
 	@echo ""
 
 # Python virtual environment
@@ -216,15 +216,17 @@ ingest: setup-env
 	@echo "✓ Ingestion complete"
 
 # Run performance tests
-test: setup-env setup-python
+performance-test: setup-env setup-python
 	@echo "Running performance tests..."
 	@if [ -z "$(API_BASE_URL)" ]; then \
 		echo "Error: API_BASE_URL not set. Run 'make setup-env' first."; \
 		exit 1; \
 	fi
-	cd scripts && \
-	$(PIP) install -q requests && \
-	$(PYTHON) performance_test.py
+	@$(PIP) install -q requests
+	@cd scripts && ../$(PYTHON) performance_test.py
+
+# Alias for backward compatibility
+test: performance-test
 
 # Test Lambda function directly
 test-lambda: setup-env
