@@ -52,15 +52,15 @@ TF_VAR_db_password ?= $(DB_PASSWORD)
 
 # Check if required variables are set
 check-env:
-	@if [ -z "$(AWS_ACCESS_KEY_ID)" ]; then \
+	@if [ -z "$$AWS_ACCESS_KEY_ID" ]; then \
 		echo "Error: AWS_ACCESS_KEY_ID not set in .env or environment"; \
 		exit 1; \
 	fi
-	@if [ -z "$(AWS_SECRET_ACCESS_KEY)" ]; then \
+	@if [ -z "$$AWS_SECRET_ACCESS_KEY" ]; then \
 		echo "Error: AWS_SECRET_ACCESS_KEY not set in .env or environment"; \
 		exit 1; \
 	fi
-	@if [ -z "$(DB_PASSWORD)" ]; then \
+	@if [ -z "$$DB_PASSWORD" ]; then \
 		echo "Error: DB_PASSWORD not set in .env or environment"; \
 		exit 1; \
 	fi
