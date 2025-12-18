@@ -28,20 +28,50 @@ class Message(BaseModel):
 
 class PaginatedMessages(BaseModel):
     """Paginated response model matching the external API structure."""
-    total: int = Field(..., description="Total number of messages")
-    items: List[Message] = Field(..., description="List of messages")
+    total: int = Field(
+        ..., 
+        description="Total number of messages matching the search query (across all pages)",
+        examples=[72, 150, 23]
+    )
+    items: List[Message] = Field(
+        ..., 
+        description="List of messages for the current page",
+        examples=[[
+            {
+                "id": "msg_123",
+                "user_id": "user_456",
+                "user_name": "John Doe",
+                "timestamp": "2024-01-01T00:00:00Z",
+                "message": "Looking for a luxury car rental in Paris"
+            },
+            {
+                "id": "msg_124",
+                "user_id": "user_789",
+                "user_name": "Jane Smith",
+                "timestamp": "2024-01-02T10:30:00Z",
+                "message": "Need a car service to the airport tomorrow"
+            }
+        ]]
+    )
 
     class Config:
         json_schema_extra = {
             "example": {
-                "total": 100,
+                "total": 72,
                 "items": [
                     {
                         "id": "msg_123",
                         "user_id": "user_456",
                         "user_name": "John Doe",
                         "timestamp": "2024-01-01T00:00:00Z",
-                        "message": "This is a sample message"
+                        "message": "Looking for a luxury car rental in Paris"
+                    },
+                    {
+                        "id": "msg_124",
+                        "user_id": "user_789",
+                        "user_name": "Jane Smith",
+                        "timestamp": "2024-01-02T10:30:00Z",
+                        "message": "Need a car service to the airport tomorrow"
                     }
                 ]
             }

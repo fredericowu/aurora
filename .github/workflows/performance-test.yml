@@ -1,12 +1,6 @@
 name: Performance Test
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/performance_test.py'
-      - '.github/workflows/performance-test.yml'
   workflow_dispatch:
     inputs:
       iterations:
