@@ -104,7 +104,8 @@ def run_test_suite(api_url: str, test_name: str, queries: List[str]) -> Dict:
     print(f"\nWarm-up call (excluded from results)...")
     warmup_query = queries[0] if queries else "test"
     warmup_result = make_search_request(api_url, warmup_query)
-    print(f"Warm-up: {warmup_result['latency_ms']:.2f}ms - {warmup_result.get('error', 'OK')}")
+    error_msg = warmup_result.get('error') or 'OK'
+    print(f"Warm-up: {warmup_result['latency_ms']:.2f}ms - {error_msg}")
     
     # Actual test calls
     print(f"\nRunning {NUM_ITERATIONS} test calls...")
@@ -118,8 +119,8 @@ def run_test_suite(api_url: str, test_name: str, queries: List[str]) -> Dict:
         else:
             status = "✗"
         
-        print(f"  [{i:2d}] {status} {result['latency_ms']:7.2f}ms - Query: '{query[:30]}...' "
-              f"({result.get('error', 'OK')})")
+        error_msg = result.get('error') or 'OK'
+        print(f"  [{i:2d}] {status} {result['latency_ms']:7.2f}ms - Query: '{query[:30]}...' ({error_msg})")
     
     # Calculate statistics
     successful_results = [r for r in results if r['success']]
