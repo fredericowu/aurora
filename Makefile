@@ -122,12 +122,14 @@ plan: init-terraform
 # Build Lambda deployment package
 build-lambda:
 	@echo "Building Lambda deployment package for x86_64..."
-	@rm -rf $(TF_DIR)/lambda_package $(TF_DIR)/lambda_function.zip
+	@sudo rm -rf $(TF_DIR)/lambda_package || rm -rf $(TF_DIR)/lambda_package || true
+	@rm -f $(TF_DIR)/lambda_function.zip
 	@mkdir -p $(TF_DIR)/lambda_package
 	@echo "Installing dependencies for Linux x86_64..."
 	@docker run --rm --platform linux/amd64 \
 		--entrypoint /bin/bash \
-		-v $(shell pwd)/lambda:/lambda \
+		--user $(shell id -u):$(shell id -g) \
+		-v $(shell pwd)/lambda:/lambda:ro \
 		-v $(shell pwd)/$(TF_DIR)/lambda_package:/package \
 		public.ecr.aws/lambda/python:3.13 \
 		-c "pip install -r /lambda/requirements.txt -t /package --no-cache-dir && chmod -R 755 /package"
