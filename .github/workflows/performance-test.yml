@@ -1,0 +1,80 @@
+name: Performance Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/performance_test.py'
+      - '.github/workflows/performance-test.yml'
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: 'Number of test iterations'
+        required: false
+        default: '10'
+        type: string
+
+jobs:
+  performance-test:
+    name: Run Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      
+      - name: Get API Gateway URL
+        id: get-api-url
+        run: |
+          cd terraform
+          terraform init
+          API_URL=$(terraform output -raw api_gateway_url 2>/dev/null || echo "")
+          if [ -z "$API_URL" ]; then
+            echo "Error: Could not get API Gateway URL"
+            exit 1
+          fi
+          echo "API_BASE_URL=$API_URL" >> $GITHUB_ENV
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+      
+      - name: Run Performance Tests
+        env:
+          NUM_ITERATIONS: ${{ github.event.inputs.iterations || '10' }}
+        run: |
+          echo "🚀 Running Performance Tests"
+          echo "API URL: $API_BASE_URL"
+          echo "Iterations: $NUM_ITERATIONS"
+          echo ""
+          python scripts/performance_test.py
+      
+      - name: Display Summary
+        if: always()
+        run: |
+          echo "================================================"
+          echo "Performance Test Completed"
+          echo "API Endpoint: ${{ steps.get-api-url.outputs.api_url }}"
+          echo "================================================"
+
