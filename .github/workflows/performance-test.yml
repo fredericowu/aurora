@@ -42,6 +42,14 @@ jobs:
         with:
           python-version: '3.13'
       
+      - name: Check Runner Location
+        run: |
+          echo "🌍 Runner Location Information:"
+          echo "Hostname: $(hostname)"
+          echo "Public IP: $(curl -s https://api.ipify.org)"
+          echo "Location: $(curl -s https://ipapi.co/$(curl -s https://api.ipify.org)/json/ | jq -r '.city + ", " + .region + ", " + .country_name')"
+          echo ""
+      
       - name: Get API Gateway URL
         id: get-api-url
         run: |
@@ -54,6 +62,15 @@ jobs:
           fi
           echo "API_BASE_URL=$API_URL" >> $GITHUB_ENV
           echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+          echo ""
+          echo "📡 Network Latency Test:"
+          API_HOST=$(echo $API_URL | sed -e 's|https\?://||' -e 's|/.*||')
+          echo "Testing latency to: $API_HOST"
+          echo "Ping test (3 attempts):"
+          for i in {1..3}; do
+            curl -o /dev/null -s -w "  Attempt $i: %{time_total}s (DNS: %{time_namelookup}s, Connect: %{time_connect}s, Transfer: %{time_starttransfer}s)\n" "https://$API_HOST"
+          done
+          echo ""
       
       - name: Install Python dependencies
         run: |
