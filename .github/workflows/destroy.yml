@@ -7,6 +7,11 @@ on:
         description: 'Type "DESTROY" to confirm infrastructure destruction'
         required: true
         type: string
+      force_unlock:
+        description: 'Force unlock Terraform state lock if present'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   destroy:
@@ -60,11 +65,45 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       
+      - name: Handle State Lock
+        if: github.event.inputs.force_unlock == 'true'
+        run: |
+          echo "⚠️  Force unlock requested. Checking for state locks..."
+          cd terraform
+          # Attempt destroy first to see if there's a lock
+          # If lock error occurs, the destroy step will handle it with better error message
+          echo "Note: If a lock exists, you may need to manually unlock it."
+          echo "To unlock manually, run: terraform force-unlock <LOCK_ID>"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      
       - name: Terraform Destroy
+        id: destroy
         run: |
           echo "🗑️  Starting infrastructure destruction..."
           cd terraform
-          terraform destroy -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}"
+          # Capture output to check for lock errors
+          if ! terraform destroy -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}" 2>&1 | tee /tmp/terraform-destroy.log; then
+            EXIT_CODE=${PIPESTATUS[0]}
+            echo ""
+            echo "⚠️  Destroy failed with exit code: $EXIT_CODE"
+            # Check if error mentions state lock
+            if grep -q "state lock\|Error acquiring the state lock" /tmp/terraform-destroy.log; then
+              echo ""
+              echo "❌ State lock detected!"
+              echo "If you have a local Terraform process running, please stop it first."
+              echo ""
+              echo "To unlock manually:"
+              echo "1. Extract the Lock ID from the error message above"
+              echo "2. Run: terraform force-unlock <LOCK_ID>"
+              echo ""
+              echo "Or run this workflow again after stopping any local Terraform processes."
+            fi
+            exit $EXIT_CODE
+          fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -82,5 +121,11 @@ jobs:
         run: |
           echo "❌ Infrastructure destruction failed"
           echo "Please check the logs above for details."
+          echo ""
+          echo "Common issues:"
+          echo "- State lock: Another Terraform process may be running. Stop it or use force_unlock option."
+          echo "- Missing resources: Some resources may have been manually deleted."
+          echo "- Permissions: Ensure AWS credentials have necessary permissions."
+          echo ""
           echo "Some resources may still exist. You may need to manually clean them up."
 
