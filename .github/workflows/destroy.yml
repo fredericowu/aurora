@@ -65,6 +65,18 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       
+      - name: Create placeholder Lambda zip if missing
+        run: |
+          # For destroy operations, Terraform still validates the config
+          # Create a minimal empty zip file if it doesn't exist
+          if [ ! -f terraform/lambda_function.zip ]; then
+            echo "Creating placeholder lambda_function.zip for destroy validation..."
+            cd terraform
+            # Create an empty zip file
+            echo -n "" | zip -q lambda_function.zip - || python3 -c "import zipfile; zipfile.ZipFile('lambda_function.zip', 'w').close()" || touch lambda_function.zip
+            echo "✓ Placeholder created"
+          fi
+      
       - name: Handle State Lock
         if: github.event.inputs.force_unlock == 'true'
         run: |
