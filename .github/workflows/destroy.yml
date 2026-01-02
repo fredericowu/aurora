@@ -1,0 +1,86 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "DESTROY" to confirm infrastructure destruction'
+        required: true
+        type: string
+
+jobs:
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Validate Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "DESTROY" ]; then
+            echo "❌ Destruction not confirmed. You must type 'DESTROY' to proceed."
+            exit 1
+          fi
+          echo "⚠️  WARNING: This will destroy ALL infrastructure!"
+          echo "✅ Confirmation received: ${{ github.event.inputs.confirm_destroy }}"
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
+      
+      - name: Setup Make
+        run: |
+          make --version
+      
+      - name: Create .env from secrets
+        run: |
+          cat > .env << EOF
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          EOF
+      
+      - name: Initialize Terraform
+        run: make init-terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      
+      - name: Terraform Destroy
+        run: |
+          echo "🗑️  Starting infrastructure destruction..."
+          cd terraform
+          terraform destroy -auto-approve -var="db_password=${{ secrets.DB_PASSWORD }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      
+      - name: Destruction Complete
+        if: success()
+        run: |
+          echo "✅ Infrastructure destruction completed successfully"
+          echo "All AWS resources have been removed."
+      
+      - name: Destruction Failed
+        if: failure()
+        run: |
+          echo "❌ Infrastructure destruction failed"
+          echo "Please check the logs above for details."
+          echo "Some resources may still exist. You may need to manually clean them up."
+
